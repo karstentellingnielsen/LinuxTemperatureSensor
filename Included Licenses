@@ -1,6 +1,10 @@
+﻿This module is based on the code published by Microsoft for a Temperature sensor simulatior:
+https://github.com/ReneHezser/SimulatedTemperatureSensor/blob/main/LICENSE
+under the following licnense:
+
 MIT License
 
-Copyright (c) 2023 Karsten Telling Nielsen
+Copyright (c) 2021 René Hézser
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
