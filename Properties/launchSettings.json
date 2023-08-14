@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "LinuxTemperatureSensor": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.33424.131
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LinuxTemperatureSensor", "LinuxTemperatureSensor.csproj", "{0401277E-6ECD-40F8-BF90-7E103FFBD33B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		CheckInBuild|Any CPU = CheckInBuild|Any CPU
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0401277E-6ECD-40F8-BF90-7E103FFBD33B}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
+		{0401277E-6ECD-40F8-BF90-7E103FFBD33B}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
+		{0401277E-6ECD-40F8-BF90-7E103FFBD33B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0401277E-6ECD-40F8-BF90-7E103FFBD33B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0401277E-6ECD-40F8-BF90-7E103FFBD33B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0401277E-6ECD-40F8-BF90-7E103FFBD33B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3275FC7B-F6E2-4ED0-AECF-822C1810E68B}
+	EndGlobalSection
+EndGlobal
