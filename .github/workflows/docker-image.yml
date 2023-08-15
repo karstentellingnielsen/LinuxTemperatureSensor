@@ -24,8 +24,8 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag ${{ secrets.DOCKER_HUB_USER_NAME }}/linuxtemperaturesensor:$(date +%s)
+      run: docker build . --file Dockerfile --tag ${{ variables.DOCKER_HUB_USER_NAME }}/linuxtemperaturesensor:$(date +%s)
     - name: Push the Docker image
-      run: docker push ${{ secrets.DOCKER_HUB_USER_NAME }}/linuxtemperaturesensor:$(date +%s)
+      run: docker push ${{ variables.DOCKER_HUB_USER_NAME }}/linuxtemperaturesensor:$(date +%s)
 
     
