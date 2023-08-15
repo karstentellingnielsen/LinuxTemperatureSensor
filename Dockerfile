@@ -22,7 +22,7 @@ ENV MODULE_NAME "LinuxTemperatureSensor.dll"
 WORKDIR /app
 COPY --from=publish /app/publish .
 RUN ls -R /app
-#COPY $EXE_DIR/ ./
+COPY $EXE_DIR/ ./
 
 #Test definitiosn only, comment out for real installation
 #RUN apk add lm-sensors lm-sensors-detect
@@ -33,8 +33,8 @@ RUN ls -R /app
 
 # Add an unprivileged user account for running the module
 RUN adduser -Ds /bin/sh moduleuser 
-#USER moduleuser
+USER moduleuser
 
 
-#CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Module" && \
-#    exec /usr/bin/dotnet LinuxTemperatureSensor.dll
+CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Module" && \
+    exec /usr/bin/dotnet LinuxTemperatureSensor.dll

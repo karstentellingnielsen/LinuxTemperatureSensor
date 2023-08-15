@@ -8,11 +8,17 @@ on:
 
 jobs:
 
-  build:
+  build_and_oush:
 
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag linuxtemperaturesensor:$(date +%s)
+      run: docker build . --file Dockerfile --tag ${{ secrets.DOCKER_HUB_USER_NAME }}/linuxtemperaturesensor:$(date +%s)
+    - name: Log in to docker hub
+      run: docker login --username=${{ secrets.DOCKER_HUB_USER_NAME }} --password={{ secrets.DOCKER_HUB_PASSWORD }}
+    - name: Push the Docker image
+      run: docker push ${{ secrets.DOCKER_HUB_USER_NAME }}/linuxtemperaturesensor:$(date +%s)
+
+    

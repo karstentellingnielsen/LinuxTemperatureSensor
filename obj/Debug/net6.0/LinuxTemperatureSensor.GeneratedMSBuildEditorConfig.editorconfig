@@ -8,4 +8,4 @@ build_property.PlatformNeutralAssembly =
 build_property.EnforceExtendedAnalyzerRules = 
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = LinuxTemperatureSensor
-build_property.ProjectDir = C:\Users\U419091\Source\Repos\LinuxTemperatureSensor\
+build_property.ProjectDir = C:\Users\U419091\source\repos\LinuxTemperatureSensor\
