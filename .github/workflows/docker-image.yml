@@ -17,15 +17,24 @@ jobs:
           username: ${{ vars.DOCKER_HUB_USER_NAME }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
-  build_and_oush:
+  build_and_push:
 
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Initialize gitVersion
+      uses: gitversion/setup@v0
+    - name: Determine Version
+      id:   gitversion # id to later be referenced
+      uses: gittools/actions/gitversion/execute@v0
+
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag ${{ vars.DOCKER_HUB_USER_NAME }}/linuxtemperaturesensor:$(date +%s)
+      run: docker build . --file Dockerfile --tag ${{ vars.DOCKER_HUB_USER_NAME }}/linuxtemperaturesensor:${{ steps.gitversion.outputs.semVer }}
     - name: Push the Docker image
-      run: docker push ${{ vars.DOCKER_HUB_USER_NAME }}/linuxtemperaturesensor:$(date +%s)
+      run: docker push ${{ vars.DOCKER_HUB_USER_NAME }}/linuxtemperaturesensor:${{ steps.gitversion.outputs.semVer }}
 
     
