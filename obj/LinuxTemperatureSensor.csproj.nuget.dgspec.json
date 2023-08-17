@@ -1,15 +1,15 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\U419091\\Source\\Repos\\LinuxTemperatureSensor\\LinuxTemperatureSensor.csproj": {}
+    "C:\\Users\\U419091\\source\\repos\\LinuxTemperatureSensor\\LinuxTemperatureSensor.csproj": {}
   },
   "projects": {
-    "C:\\Users\\U419091\\Source\\Repos\\LinuxTemperatureSensor\\LinuxTemperatureSensor.csproj": {
+    "C:\\Users\\U419091\\source\\repos\\LinuxTemperatureSensor\\LinuxTemperatureSensor.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\U419091\\Source\\Repos\\LinuxTemperatureSensor\\LinuxTemperatureSensor.csproj",
+        "projectUniqueName": "C:\\Users\\U419091\\source\\repos\\LinuxTemperatureSensor\\LinuxTemperatureSensor.csproj",
         "projectName": "LinuxTemperatureSensor",
-        "projectPath": "C:\\Users\\U419091\\Source\\Repos\\LinuxTemperatureSensor\\LinuxTemperatureSensor.csproj",
+        "projectPath": "C:\\Users\\U419091\\source\\repos\\LinuxTemperatureSensor\\LinuxTemperatureSensor.csproj",
         "packagesPath": "C:\\Users\\U419091\\.nuget\\packages\\",
         "outputPath": "C:\\Users\\U419091\\Source\\Repos\\LinuxTemperatureSensor\\obj\\",
         "projectStyle": "PackageReference",

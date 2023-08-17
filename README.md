@@ -1,5 +1,5 @@
 # Introduction
-This is a small side project to get a temperature reading from the Uno-127 as an IoT edge module.
+This is a small side project to get a temperature reading from a linux edge device as an IoT edge module.
 
 The module will be applicable for all linux IoT edge devices. It will not work in a windows device. For that another solution is needed.
 

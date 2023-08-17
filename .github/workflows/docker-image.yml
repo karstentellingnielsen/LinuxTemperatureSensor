@@ -44,4 +44,5 @@ jobs:
         username: ${{ vars.DOCKER_HUB_USER_NAME }}
         password: ${{ secrets.DOCKER_HUB_PASSWORD }}
         repository: ${{ vars.DOCKER_HUB_USER_NAME }}/linuxtemperaturesensor
+        short-description: Azure IoT temperature sensor for linux host operating system
     

@@ -170,7 +170,8 @@ namespace LinuxTemperatureSensor
 
             while (!cts.Token.IsCancellationRequested)
             {
-                ProcessStartInfo startInfo = new ProcessStartInfo() { FileName = "/bin/bash", Arguments = "sensors -j", };
+//                ProcessStartInfo startInfo = new ProcessStartInfo() { FileName = "/bin/sh", Arguments = "sensors -j", };
+                ProcessStartInfo startInfo = new ProcessStartInfo() { FileName = "sensors", Arguments = "-j", };
                 Process sensors = new Process() { StartInfo = startInfo };
                 sensors.Start();
                 sensors.WaitForExit();
