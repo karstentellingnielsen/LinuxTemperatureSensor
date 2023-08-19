@@ -153,9 +153,9 @@ namespace LinuxTemperatureSensor
 
             while (!cts.Token.IsCancellationRequested)
             {
-                Console.WriteLine("Calling Sensors -j");
+                Console.WriteLine("Calling Sensors -j (2)");
 
-                ProcessStartInfo startInfo = new ProcessStartInfo() { FileName = "sensors", Arguments = "-j", RedirectStandardInput = true};
+                ProcessStartInfo startInfo = new ProcessStartInfo() { FileName = "sensors", Arguments = "-j", RedirectStandardInput = true, RedirectStandardOutput=true};
                 Process sensors = new Process() { StartInfo = startInfo };
                 sensors.Start();
                 sensors.WaitForExit();
