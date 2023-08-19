@@ -1,4 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
+using Microsoft.Extensions.Logging;
+
 namespace LinuxTemperatureSensor
 {
     using System;
@@ -16,13 +18,21 @@ namespace LinuxTemperatureSensor
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.Logging.Console;
     using Newtonsoft.Json;
     using ExponentialBackoff = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.ExponentialBackoff;
+
 
     class Program
     {
         const string SendDataConfigKey = "SendData";
         const string SendIntervalConfigKey = "SendInterval";
+
+        private static ILogger<Program> logger = null;
+
+
+
 
         static readonly ITransientErrorDetectionStrategy DefaultTimeoutErrorDetectionStrategy =
             new DelegateErrorDetectionStrategy(ex => ex.HasTimeoutException());
@@ -42,7 +52,18 @@ namespace LinuxTemperatureSensor
         public static int Main() => MainAsync().Result;
         static async Task<int> MainAsync()
         {
-            Console.WriteLine("LinuxTemperatureSensor Main() started.");
+            using var loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder
+                    .AddFilter("Microsoft", LogLevel.Warning)
+                    .AddFilter("System", LogLevel.Warning)
+                    .AddFilter("Program", LogLevel.Debug)
+                    .AddConsole();
+            });
+            logger = loggerFactory.CreateLogger<Program>();
+
+
+            logger.LogInformation("LinuxTemperatureSensor Main() started.");
 
             IConfiguration configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
@@ -52,7 +73,7 @@ namespace LinuxTemperatureSensor
 
             messageDelay = configuration.GetValue("MessageDelay", TimeSpan.FromSeconds(5));
 
-            Console.WriteLine(
+            logger.LogInformation(
                 $"Initializing temperature sensor to send "
                 + $"messages, at an interval of {messageDelay.TotalSeconds} seconds.");
 
@@ -78,7 +99,7 @@ namespace LinuxTemperatureSensor
                 sendData = (bool)currentTwinProperties.Properties.Desired[SendDataConfigKey];
                 if (!sendData)
                 {
-                    Console.WriteLine("Sending data disabled. Change twin configuration to start sending again.");
+                    logger.LogInformation("Sending data disabled. Change twin configuration to start sending again.");
                 }
             }
 
@@ -91,7 +112,7 @@ namespace LinuxTemperatureSensor
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
 
-            Console.WriteLine("LinuxTemperatureSensor Main() finished.");
+            logger.LogInformation("LinuxTemperatureSensor Main() finished.");
             return 0;
         }
 
@@ -104,7 +125,7 @@ namespace LinuxTemperatureSensor
             byte[] messageBytes = message.GetBytes();
             string messageString = Encoding.UTF8.GetString(messageBytes);
 
-            Console.WriteLine($"Received message Body: [{messageString}]");
+            logger.LogDebug($"Received message Body: [{messageString}]");
 
             try
             {
@@ -117,11 +138,11 @@ namespace LinuxTemperatureSensor
             }
             catch (JsonSerializationException ex)
             {
-                Console.WriteLine($"Error: Failed to deserialize control command with exception: [{ex}]");
+                logger.LogError($"Error: Failed to deserialize control command with exception: [{ex}]");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error: Failed to deserialize control command with exception: [{ex}]");
+                logger.LogError($"Error: Failed to deserialize control command with exception: [{ex}]");
             }
 
             return Task.FromResult(MessageResponse.Completed);
@@ -129,7 +150,7 @@ namespace LinuxTemperatureSensor
 
         static Task<MethodResponse> ResetMethod(MethodRequest methodRequest, object userContext)
         {
-            Console.WriteLine("Received direct method call to reset temperature sensor...");
+            logger.LogInformation("Received direct method call to reset temperature sensor...");
             Reset.Set(true);
             var response = new MethodResponse((int)HttpStatusCode.OK);
             return Task.FromResult(response);
@@ -151,16 +172,16 @@ namespace LinuxTemperatureSensor
         {
             int count = 1;
 
-            while (!cts.Token.IsCancellationRequested)
-            {
-                Console.WriteLine("Calling Sensors -j (2)");
+            while (!cts.Token.IsCancellationRequested) { 
+            
+                logger.LogDebug("Calling Sensors -j (2)");
 
                 ProcessStartInfo startInfo = new ProcessStartInfo() { FileName = "sensors", Arguments = "-j", RedirectStandardInput = true, RedirectStandardOutput=true};
                 Process sensors = new Process() { StartInfo = startInfo };
                 sensors.Start();
                 sensors.WaitForExit();
 
-                Console.WriteLine("Sensors -j called");
+                logger.LogDebug("Sensors -j called");
 
                 var eventMessage = new Message(sensors.StandardOutput.BaseStream);
                 eventMessage.ContentEncoding = "utf-8";
@@ -168,13 +189,13 @@ namespace LinuxTemperatureSensor
                 eventMessage.Properties.Add("sequenceNumber", count.ToString());
                 eventMessage.Properties.Add("batchId", BatchId.ToString());
 
-                Console.WriteLine("Message created");
+                logger.LogDebug("Message created");
 
-                Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Sending message: {eventMessage.ToString()}");
+                logger.LogDebug($"\t{DateTime.Now.ToLocalTime()}> Sending message: {eventMessage.ToString()}");
 
                 await moduleClient.SendEventAsync("temperatureOutput", eventMessage);
 
-                Console.WriteLine("Message sendt");
+                logger.LogDebug($"Message sendt: {eventMessage.GetBytes().ToString()}");
 
                 await Task.Delay(messageDelay, cts.Token);
             }
@@ -193,7 +214,7 @@ namespace LinuxTemperatureSensor
                 bool desiredSendDataValue = (bool)desiredPropertiesPatch[SendDataConfigKey];
                 if (desiredSendDataValue != sendData && !desiredSendDataValue)
                 {
-                    Console.WriteLine("Sending data disabled. Change twin configuration to start sending again.");
+                    logger.LogInformation("Sending data disabled. Change twin configuration to start sending again.");
                 }
 
                 sendData = desiredSendDataValue;
@@ -210,7 +231,7 @@ namespace LinuxTemperatureSensor
             RetryStrategy retryStrategy = null)
         {
             var retryPolicy = new RetryPolicy(transientErrorDetectionStrategy, retryStrategy);
-            retryPolicy.Retrying += (_, args) => { Console.WriteLine($"[Error] Retry {args.CurrentRetryCount} times to create module client and failed with exception:{Environment.NewLine}{args.LastException}"); };
+            retryPolicy.Retrying += (_, args) => { logger.LogError($"Retry {args.CurrentRetryCount} times to create module client and failed with exception:{Environment.NewLine}{args.LastException}"); };
 
             ModuleClient client = await retryPolicy.ExecuteAsync(
                 async () =>
@@ -232,11 +253,11 @@ namespace LinuxTemperatureSensor
                     }
 
                     ITransportSettings[] settings = GetTransportSettings();
-                    Console.WriteLine($"[Information]: Trying to initialize module client using transport type [{transportType}].");
+                    logger.LogInformation($"Trying to initialize module client using transport type [{transportType}].");
                     ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
                     await moduleClient.OpenAsync();
 
-                    Console.WriteLine($"[Information]: Successfully initialized module client of transport type [{transportType}].");
+                    logger.LogInformation($"Successfully initialized module client of transport type [{transportType}].");
                     return moduleClient;
                 });
 
