@@ -153,10 +153,14 @@ namespace LinuxTemperatureSensor
 
             while (!cts.Token.IsCancellationRequested)
             {
+                Console.WriteLine("Calling Sensors -j");
+
                 ProcessStartInfo startInfo = new ProcessStartInfo() { FileName = "sensors", Arguments = "-j", RedirectStandardInput = true};
                 Process sensors = new Process() { StartInfo = startInfo };
                 sensors.Start();
                 sensors.WaitForExit();
+
+                Console.WriteLine("Sensors -j called");
 
                 var eventMessage = new Message(sensors.StandardOutput.BaseStream);
                 eventMessage.ContentEncoding = "utf-8";
@@ -164,9 +168,13 @@ namespace LinuxTemperatureSensor
                 eventMessage.Properties.Add("sequenceNumber", count.ToString());
                 eventMessage.Properties.Add("batchId", BatchId.ToString());
 
+                Console.WriteLine("Message created");
+
                 Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Sending message: {eventMessage.ToString()}");
 
                 await moduleClient.SendEventAsync("temperatureOutput", eventMessage);
+
+                Console.WriteLine("Message sendt");
 
                 await Task.Delay(messageDelay, cts.Token);
             }
