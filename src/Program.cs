@@ -39,20 +39,6 @@ namespace LinuxTemperatureSensor
         static TimeSpan messageDelay;
         static bool sendData = true;
 
-        /// <summary>
-        /// If this environment variable is set, this module do not use any IoT communicatios, 
-        /// and can be debugged as a standard docker image
-        /// </summary>
-        public static readonly string DockerOnlyEnv = "IS_DOCKER_ONLY";
-
-        internal static bool IsDockerOnly
-        {
-            get
-            {
-                var isDockerOnly = Environment.GetEnvironmentVariable(DockerOnlyEnv);
-                return isDockerOnly != null;
-            }
-        }
         public static int Main() => MainAsync().Result;
         static async Task<int> MainAsync()
         {
@@ -72,41 +58,38 @@ namespace LinuxTemperatureSensor
 
             TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only);
 
-            if (!IsDockerOnly)
+            ModuleClient moduleClient = await CreateModuleClientAsync(
+                transportType,
+                DefaultTimeoutErrorDetectionStrategy,
+                DefaultTransientRetryStrategy);
+            await moduleClient.OpenAsync();
+            await moduleClient.SetMethodHandlerAsync("reset", ResetMethod, null);
+
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
+
+            Twin currentTwinProperties = await moduleClient.GetTwinAsync();
+            if (currentTwinProperties.Properties.Desired.Contains(SendIntervalConfigKey))
             {
-                ModuleClient moduleClient = await CreateModuleClientAsync(
-                    transportType,
-                    DefaultTimeoutErrorDetectionStrategy,
-                    DefaultTransientRetryStrategy);
-                await moduleClient.OpenAsync();
-                await moduleClient.SetMethodHandlerAsync("reset", ResetMethod, null);
-
-                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
-
-                Twin currentTwinProperties = await moduleClient.GetTwinAsync();
-                if (currentTwinProperties.Properties.Desired.Contains(SendIntervalConfigKey))
-                {
-                    messageDelay = TimeSpan.FromSeconds((int)currentTwinProperties.Properties.Desired[SendIntervalConfigKey]);
-                }
-
-                if (currentTwinProperties.Properties.Desired.Contains(SendDataConfigKey))
-                {
-                    sendData = (bool)currentTwinProperties.Properties.Desired[SendDataConfigKey];
-                    if (!sendData)
-                    {
-                        Console.WriteLine("Sending data disabled. Change twin configuration to start sending again.");
-                    }
-                }
-
-                ModuleClient userContext = moduleClient;
-                await moduleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertiesUpdated, userContext);
-                await moduleClient.SetInputMessageHandlerAsync("control", ControlMessageHandle, userContext);
-                await SendEvents(moduleClient, cts);
-                await cts.Token.WhenCanceled();
-
-                completed.Set();
-                handler.ForEach(h => GC.KeepAlive(h));
+                messageDelay = TimeSpan.FromSeconds((int)currentTwinProperties.Properties.Desired[SendIntervalConfigKey]);
             }
+
+            if (currentTwinProperties.Properties.Desired.Contains(SendDataConfigKey))
+            {
+                sendData = (bool)currentTwinProperties.Properties.Desired[SendDataConfigKey];
+                if (!sendData)
+                {
+                    Console.WriteLine("Sending data disabled. Change twin configuration to start sending again.");
+                }
+            }
+
+            ModuleClient userContext = moduleClient;
+            await moduleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertiesUpdated, userContext);
+            await moduleClient.SetInputMessageHandlerAsync("control", ControlMessageHandle, userContext);
+            await SendEvents(moduleClient, cts);
+            await cts.Token.WhenCanceled();
+
+            completed.Set();
+            handler.ForEach(h => GC.KeepAlive(h));
 
             Console.WriteLine("LinuxTemperatureSensor Main() finished.");
             return 0;
@@ -180,7 +163,8 @@ namespace LinuxTemperatureSensor
                 eventMessage.ContentType = "application/json";
                 eventMessage.Properties.Add("sequenceNumber", count.ToString());
                 eventMessage.Properties.Add("batchId", BatchId.ToString());
-                Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Sending message: {eventMessage.ToString}");
+
+                Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Sending message: {eventMessage.ToString()}");
 
                 await moduleClient.SendEventAsync("temperatureOutput", eventMessage);
 
