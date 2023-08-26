@@ -27,9 +27,9 @@ namespace LinuxTemperatureSensor
     class Program
     {
         const string SendDataConfigKey = "SendData";
-        const string SendIntervalConfigKey = "SendInterval";
+        const string SendIntervalConfigKey = "Period";
 
-        private static ILogger<Program> logger = null;
+        private static ILogger logger = null;
 
 
 
@@ -52,27 +52,34 @@ namespace LinuxTemperatureSensor
         public static int Main() => MainAsync().Result;
         static async Task<int> MainAsync()
         {
-            using var loggerFactory = LoggerFactory.Create(builder =>
-            {
-                builder
-                    .AddFilter("Microsoft", LogLevel.Warning)
-                    .AddFilter("System", LogLevel.Warning)
-                    .AddFilter("Program", LogLevel.Debug)
-                    .AddConsole();
-            });
-            logger = loggerFactory.CreateLogger<Program>();
-
-
-            logger.LogInformation("LinuxTemperatureSensor Main() started.");
-
             IConfiguration configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("config/appsettings.json", optional: true)
+                .AddJsonFile("config/appsettings.json", optional: false)
                 .AddEnvironmentVariables()
                 .Build();
 
-            messageDelay = configuration.GetValue("MessageDelay", TimeSpan.FromSeconds(5));
+           var loggerFactory = LoggerFactory.Create(builder =>
+                {
+                    builder
+                        //                    .AddFilter("Microsoft", LogLevel.Warning)
+                        //                    .AddFilter("System", LogLevel.Warning)
+                        //                    .AddFilter("Program", LogLevel.Debug)
+                        .AddConfiguration(configuration.GetSection("Logging"))
+                        .AddConsole();
 
+                });
+
+
+            logger = loggerFactory.CreateLogger<Program>();
+
+            logger.LogWarning("Warning");
+            logger.LogError("Error");
+            logger.LogDebug("Debug");
+
+            logger.LogInformation("LinuxTemperatureSensor Main() started.");
+
+            messageDelay = TimeSpan.FromSeconds(configuration.GetValue(SendIntervalConfigKey, 900));
+                
             logger.LogInformation(
                 $"Initializing temperature sensor to send "
                 + $"messages, at an interval of {messageDelay.TotalSeconds} seconds.");
@@ -118,7 +125,7 @@ namespace LinuxTemperatureSensor
 
         // Control Message expected to be:
         // {
-        //     "command" : "reset"
+        //     "period" : "seconds"
         // }
         static Task<MessageResponse> ControlMessageHandle(Message message, object userContext)
         {
