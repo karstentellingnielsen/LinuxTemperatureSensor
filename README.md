@@ -39,7 +39,7 @@ Currently updating the reporting period by sending a command is not tested.
 ## Temperature reporting messages
 The module reports temperature as recived directly from the `sensors -j` command. 
 No formatting takes place. As a result the messsage generated will depend on the BIOS and the Linux installation.
-Below is an example message as reporten UNO-127 and Ubunto 22 kernel:
+Below is an example message as reporten UNO-127 and Ubuntu 22 kernel:
 ```
 {
   "acpitz-acpi-0": {

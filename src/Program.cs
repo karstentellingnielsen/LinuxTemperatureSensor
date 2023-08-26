@@ -196,13 +196,9 @@ namespace LinuxTemperatureSensor
                 eventMessage.Properties.Add("sequenceNumber", count.ToString());
                 eventMessage.Properties.Add("batchId", BatchId.ToString());
 
-                logger.LogDebug("Message created");
-
                 logger.LogDebug($"\t{DateTime.Now.ToLocalTime()}> Sending message: {eventMessage.ToString()}");
 
                 await moduleClient.SendEventAsync("temperatureOutput", eventMessage);
-
-                logger.LogDebug($"Message sendt: {eventMessage.GetBytes().ToString()}");
 
                 await Task.Delay(messageDelay, cts.Token);
             }
