@@ -7,7 +7,6 @@ namespace LinuxTemperatureSensor
     using System.Diagnostics;
     using System.IO;
     using System.Net;
-    using System.Runtime.CompilerServices;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -19,7 +18,6 @@ namespace LinuxTemperatureSensor
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
-    using Microsoft.Extensions.Logging.Console;
     using Newtonsoft.Json;
     using ExponentialBackoff = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.ExponentialBackoff;
 
@@ -28,6 +26,9 @@ namespace LinuxTemperatureSensor
     {
         const string SendDataConfigKey = "SendData";
         const string SendIntervalConfigKey = "Period";
+
+        const string InputMessageHandlerName = "control";
+        const string EventoutputName = "temperatureOutput";
 
         private static ILogger logger = null;
 
@@ -72,10 +73,6 @@ namespace LinuxTemperatureSensor
 
             logger = loggerFactory.CreateLogger<Program>();
 
-            logger.LogWarning("Warning");
-            logger.LogError("Error");
-            logger.LogDebug("Debug");
-
             logger.LogInformation("LinuxTemperatureSensor Main() started.");
 
             messageDelay = TimeSpan.FromSeconds(configuration.GetValue(SendIntervalConfigKey, 900));
@@ -91,7 +88,7 @@ namespace LinuxTemperatureSensor
                 DefaultTimeoutErrorDetectionStrategy,
                 DefaultTransientRetryStrategy);
             await moduleClient.OpenAsync();
-            await moduleClient.SetMethodHandlerAsync("reset", ResetMethod, null);
+            await moduleClient.SetMethodHandlerAsync("reset", ResetMethodAsync, null);
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
 
@@ -111,9 +108,9 @@ namespace LinuxTemperatureSensor
             }
 
             ModuleClient userContext = moduleClient;
-            await moduleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertiesUpdated, userContext);
-            await moduleClient.SetInputMessageHandlerAsync("control", ControlMessageHandle, userContext);
-            await SendEvents(moduleClient, cts);
+            await moduleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertiesUpdatedAsync, userContext);
+            await moduleClient.SetInputMessageHandlerAsync(InputMessageHandlerName, ControlMessageHandleAsync, userContext);
+            await SendEventsAsync(moduleClient, cts);
             await cts.Token.WhenCanceled();
 
             completed.Set();
@@ -127,7 +124,7 @@ namespace LinuxTemperatureSensor
         // {
         //     "period" : "seconds"
         // }
-        static Task<MessageResponse> ControlMessageHandle(Message message, object userContext)
+        static async Task<MessageResponse> ControlMessageHandleAsync(Message message, object userContext)
         {
             byte[] messageBytes = message.GetBytes();
             string messageString = Encoding.UTF8.GetString(messageBytes);
@@ -143,24 +140,20 @@ namespace LinuxTemperatureSensor
                     messageDelay = new TimeSpan(0, 0, messageBody.Period);
                 }
             }
-            catch (JsonSerializationException ex)
-            {
-                logger.LogError($"Error: Failed to deserialize control command with exception: [{ex}]");
-            }
             catch (Exception ex)
             {
                 logger.LogError($"Error: Failed to deserialize control command with exception: [{ex}]");
             }
 
-            return Task.FromResult(MessageResponse.Completed);
+            return await Task.FromResult(MessageResponse.Completed);
         }
 
-        static Task<MethodResponse> ResetMethod(MethodRequest methodRequest, object userContext)
+        static async Task<MethodResponse> ResetMethodAsync(MethodRequest methodRequest, object userContext)
         {
             logger.LogInformation("Received direct method call to reset temperature sensor...");
             Reset.Set(true);
             var response = new MethodResponse((int)HttpStatusCode.OK);
-            return Task.FromResult(response);
+            return await Task.FromResult(response);
         }
 
         /// <summary>
@@ -173,7 +166,7 @@ namespace LinuxTemperatureSensor
         ///         - Humidity is stable with tiny jitter around 25%
         ///                Method for resetting the data stream.
         /// </summary>
-        static async Task SendEvents(
+        static async Task SendEventsAsync(
             ModuleClient moduleClient,
             CancellationTokenSource cts)
         {
@@ -186,7 +179,7 @@ namespace LinuxTemperatureSensor
                 ProcessStartInfo startInfo = new ProcessStartInfo() { FileName = "sensors", Arguments = "-j", RedirectStandardInput = true, RedirectStandardOutput=true};
                 Process sensors = new Process() { StartInfo = startInfo };
                 sensors.Start();
-                sensors.WaitForExit();
+                await sensors.WaitForExitAsync();
 
                 logger.LogDebug("Sensors -j called");
 
@@ -198,13 +191,14 @@ namespace LinuxTemperatureSensor
 
                 logger.LogDebug($"\t{DateTime.Now.ToLocalTime()}> Sending message: {eventMessage.ToString()}");
 
-                await moduleClient.SendEventAsync("temperatureOutput", eventMessage);
+                moduleClient.ConfigureAwait(false);
+                await moduleClient.SendEventAsync(EventoutputName, eventMessage);
 
                 await Task.Delay(messageDelay, cts.Token);
             }
         }
 
-        static async Task OnDesiredPropertiesUpdated(TwinCollection desiredPropertiesPatch, object userContext)
+        static async Task OnDesiredPropertiesUpdatedAsync(TwinCollection desiredPropertiesPatch, object userContext)
         {
             // At this point just update the configure configuration.
             if (desiredPropertiesPatch.Contains(SendIntervalConfigKey))
